@@ -11,6 +11,16 @@ public abstract class AbstractElement {
     }
 
     public abstract String toDot();
+    
+    /**
+     * @author enricocesca
+     */
+    public abstract boolean isNode();
 
+    /**
+     * @author enricocesca
+     */
+    public abstract boolean isEdge();
+    
     private final Attrs _attrs;
 }

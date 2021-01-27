@@ -325,4 +325,18 @@ public class Node extends AbstractElement {
         getAttrs().set(Attrs.Key.z, val);
         return this;
     }
+    
+    /**
+     * @author enricocesca
+     */
+    public boolean isNode() {
+    	return true;
+    }
+    
+    /**
+     * @author enricocesca
+     */
+    public boolean isEdge() {
+    	return false;
+    }
 }

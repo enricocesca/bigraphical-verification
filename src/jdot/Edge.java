@@ -468,4 +468,18 @@ public class Edge extends AbstractElement {
         getAttrs().set(Attrs.Key.xlp, val);
         return this;
     }
+
+    /**
+     * @author enricocesca
+     */
+    public boolean isNode() {
+    	return false;
+    }
+
+    /**
+     * @author enricocesca
+     */
+    public boolean isEdge() {
+    	return true;
+    }
 }

@@ -92,14 +92,14 @@ public class Graph extends AbstractGraph {
             dot = dot + " " + getName();
         }
 
-        dot = dot + " { ";
+        dot = dot + " { \n";
 
         if (getAttrs().has()) {
             dot = dot + "graph [" + getAttrs().getAsString() + "] ";
         }
 
         for (AbstractElement e : getElements()) {
-            dot = dot + e.toDot();
+            dot = dot + e.toDot() + "\n";
         }
         dot = dot + "} ";
         return dot;

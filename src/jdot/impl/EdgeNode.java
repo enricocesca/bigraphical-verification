@@ -29,6 +29,20 @@ public class EdgeNode extends AbstractElement {
         return dot;
     }
 
+    /**
+     * @author enricocesca
+     */
+    public boolean isNode() {
+    	return false;
+    }
+
+    /**
+     * @author enricocesca
+     */
+    public boolean isEdge() {
+    	return false;
+    }
+    
     private final String _name;
     private final String _label;
 }

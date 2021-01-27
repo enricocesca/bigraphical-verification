@@ -104,6 +104,20 @@ public abstract class AbstractGraph extends AbstractElement {
         return this;
     }
 
+    /**
+     * @author enricocesca
+     */
+    public boolean isNode() {
+    	return false;
+    }
+
+    /**
+     * @author enricocesca
+     */
+    public boolean isEdge() {
+    	return false;
+    }
+    
     private final List<AbstractElement> _elements;
     private final String _name;
 }
