@@ -1160,6 +1160,101 @@ final public class DirectedBigraph implements
         return b.toString();
     }
 
+    /**
+     * @author enricocesca
+     * verification of spatial properties over a smart office environment
+     * @param args
+	 */
+	public static void main(String[] args) {
+
+		DirectedSignatureBuilder polarizedSignatureBuilder = new DirectedSignatureBuilder();
+		
+		polarizedSignatureBuilder.add("Room", true, 2, 0);
+		polarizedSignatureBuilder.add("Door", true, 0, 2);
+		
+		polarizedSignatureBuilder.add("Locked", true, 0, 0);
+		polarizedSignatureBuilder.add("Unlocked", true, 0, 0);
+		
+		polarizedSignatureBuilder.add("PC", true, 1, 0);
+		polarizedSignatureBuilder.add("Printer", true, 2, 1);
+		polarizedSignatureBuilder.add("Tray", true, 1, 0);
+		polarizedSignatureBuilder.add("Spool", true, 0, 1);
+
+		polarizedSignatureBuilder.add("User", true, 1, 1);
+		polarizedSignatureBuilder.add("Job", true, 1, 0);
+		
+		DirectedSignature polarizedSignature = polarizedSignatureBuilder.makeSignature();
+		
+		/**
+		 * Directed Bigraph for the Smart Office Environment
+		 */
+		DirectedBigraphBuilder directedBigraphBuilder = new DirectedBigraphBuilder(polarizedSignature);
+		
+		OuterName door0 = directedBigraphBuilder.addAscNameOuterInterface(0, "door0");
+		OuterName door1 = directedBigraphBuilder.addAscNameOuterInterface(0, "door1");
+		
+		OuterName lan = directedBigraphBuilder.addAscNameOuterInterface(0, "lan");
+		
+		OuterName secretary = directedBigraphBuilder.addAscNameOuterInterface(0, "secretary");
+		OuterName director = directedBigraphBuilder.addAscNameOuterInterface(0, "director");
+		
+		Root root = directedBigraphBuilder.addRoot(0);
+
+		Node d0 = directedBigraphBuilder.addNode("Door", root);
+		directedBigraphBuilder.addNode("Unlocked", d0);
+		
+		Node d1 = directedBigraphBuilder.addNode("Door", root);
+		directedBigraphBuilder.addNode("Locked", d1);
+
+		Node r0 = directedBigraphBuilder.addNode("Room", root);
+		directedBigraphBuilder.relink(door0, r0.getOutPort(0));
+		directedBigraphBuilder.relink(d0.getInPort(0), r0.getOutPort(1));
+		directedBigraphBuilder.addSite(r0);
+		
+		Node c0 = directedBigraphBuilder.addNode("PC", r0);
+		Node s0 = directedBigraphBuilder.addNode("Spool", r0);
+		directedBigraphBuilder.addSite(s0);
+
+		Node p0 = directedBigraphBuilder.addNode("Printer", r0);
+		directedBigraphBuilder.relink(s0.getInPort(0), p0.getOutPort(0));
+		
+		Node t0 = directedBigraphBuilder.addNode("Tray", r0);
+		directedBigraphBuilder.relink(p0.getInPort(0), t0.getOutPort(0));
+		directedBigraphBuilder.addSite(t0);
+
+		Node r1 = directedBigraphBuilder.addNode("Room", root);
+		directedBigraphBuilder.relink(d0.getInPort(1), r1.getOutPort(0));
+		directedBigraphBuilder.relink(d1.getInPort(0), r1.getOutPort(1));
+		directedBigraphBuilder.addSite(r1);
+		
+		Node c1 = directedBigraphBuilder.addNode("PC", r1);
+		directedBigraphBuilder.relink(c1.getOutPort(0));
+		
+		Node u0 = directedBigraphBuilder.addNode("User", r1);
+		directedBigraphBuilder.relink(secretary, u0.getOutPort(0));
+
+		Node j0 = directedBigraphBuilder.addNode("Job", u0);
+		directedBigraphBuilder.relink(u0.getInPort(0), j0.getOutPort(0));
+
+		Node r2 = directedBigraphBuilder.addNode("Room", root);
+		directedBigraphBuilder.relink(d1.getInPort(1), r2.getOutPort(0));
+		directedBigraphBuilder.relink(door1, r2.getOutPort(1));
+		directedBigraphBuilder.addSite(r2);
+		
+		Node c2 = directedBigraphBuilder.addNode("PC", r2);		
+		directedBigraphBuilder.relink(lan, c0.getOutPort(0), p0.getOutPort(1), c2.getOutPort(0));
+		
+		Node u1 = directedBigraphBuilder.addNode("User", r2);
+		directedBigraphBuilder.relink(director, u1.getOutPort(0));
+
+		Node j1 = directedBigraphBuilder.addNode("Job", u1);
+		directedBigraphBuilder.relink(u1.getInPort(0), j1.getOutPort(0));
+		
+		DirectedBigraph directedBigraph = directedBigraphBuilder.makeBigraph();
+
+		System.out.println(">> DIRECTED BIGRAPH" + "\n" + directedBigraph.toString());	
+	}
+	
     /*
      * //ATTACHED PROPERTIES
      *
