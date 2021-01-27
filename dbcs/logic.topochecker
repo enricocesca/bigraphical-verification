@@ -1,0 +1,29 @@
+
+// SLCS derivable operators:
+Let interior(x) = ! (N (! x));
+Let boundary(x) = (N x) & (! interior(x));
+Let interiorBoundary(x) = x & (! interior(x));
+Let closureBoundary(x) = (N x) & (! x);
+
+// Operators concerning Reachability:
+Let weakReachability(x,y) = ! ((! y) S (! x));
+Let reachability(x,y) = x & weakReachability((x | y),y);
+Let reachabilityThrough(x,y,z) = reachability(x,reachability(y,z));
+
+Let outer(x) = reachability([place],x);
+Let inner(x) = closureBoundary(x) & [place];
+
+// Locality ad-hoc operators:
+Let parent(x) = reachabilityThrough([node],[place],x);
+Let siblings(x) = closureBoundary(outer(x));
+Let children(x) = closureBoundary(inner(x));
+Let neighbours(x) = parent(x) | siblings(x) | children(x);
+
+// Connectivity ad-hoc operators:
+Let points(x) = reachabilityThrough((! [place]) & (! [link]),[link],x);
+Let handles(x) = closureBoundary(closureBoundary(x) & [link]);
+
+// Auxiliar operator for including handles:
+Let context(x) = (N ((N x) & (! [place]))) & (! [place]);
+
+Output "./dbcs/out-state";
