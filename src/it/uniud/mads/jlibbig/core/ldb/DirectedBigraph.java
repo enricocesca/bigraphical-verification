@@ -26,6 +26,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.*;
 
+/**
+ * @author enricocesca
+ * jLibBig Library
+ */
+import it.uniud.mads.jlibbig.core.Owned;
+
 import java.util.*;
 
 /**
@@ -1178,13 +1184,72 @@ final public class DirectedBigraph implements
         }
         return b.toString();
     }
+    
+    /**
+     * @author enricocesca
+     * ldb get function getEntity()
+     * @param id: identifier of a node of the directed bigraphical closure space
+     * @return entity of the directed bigraph with such id or null otherwise
+     */
+    public Owned getEntity(String id) {
+    	
+    	if (id.equals("")) {
+    		return null;
+    	}
+    	
+    	Map<String, EditableInnerName> inMapA = this.inners.getAsc();
+    	for (Map.Entry<String, EditableInnerName> entry : inMapA.entrySet()) {
+    		if (entry.getValue().toString().equals(id)) {
+    			return entry.getValue();
+    		}
+    	}
+    	
+    	Map<String, EditableOuterName> inMapD = this.inners.getDesc();
+    	for (Map.Entry<String, EditableOuterName> entry : inMapD.entrySet()) {
+    		if (entry.getValue().toString().equals(id)) {
+    			return entry.getValue();
+    		}
+    	}
+    	
+    	Map<String, EditableOuterName> outMapA = this.outers.getAsc();
+    	for (Map.Entry<String, EditableOuterName> entry : outMapA.entrySet()) {
+    		if (entry.getValue().toString().equals(id)) {
+    			return entry.getValue();
+    		}
+    	}
+    	
+    	Map<String, EditableInnerName> outMapD = this.outers.getDesc();
+    	for (Map.Entry<String, EditableInnerName> entry : outMapD.entrySet()) {
+    		if (entry.getValue().toString().equals(id)) {
+    			return entry.getValue();
+    		}
+    	}
+    	
+    	Iterator<? extends Node> in = this.getNodes().iterator();
+    	while (in.hasNext()) {
+    		Node n = in.next();
+    		if (n.getName().equals(id)) {
+    			return n;
+    		}
+    	}
+    	
+    	Iterator<? extends Edge> ie = this.getEdges().iterator();
+    	while (ie.hasNext()) {
+    		Edge e = ie.next();
+    		if (e.toString().equals(id)) {
+    			return e;
+    		}
+    	}
+    	
+    	return this.getSites().get(Integer.parseInt(id));
+    }
 
     /**
      * @author enricocesca
-     * jDot function getNameOrNull()
+     * jDot get function getNameOrNull()
      * @param space: directed bigraphical closure space modeled as a digraph
-     * @param id: identifier of a node of the directed bigraph
-     * @return the name of the node with such id or null if there isn't
+     * @param id: identifier of a node in space
+     * @return the name (number) of the node with such id or null if there isn't
      */
     public static String getNameOrNull(jdot.Graph space, String id) {
     	
@@ -1204,11 +1269,26 @@ final public class DirectedBigraph implements
     
     /**
      * @author enricocesca
-     * verification function check()
-     * @param formula: a formula over SLCS for specifying spatial properties
-     * @return a list of identifiers of the nodes that satisfies the property
+     * Topochecker paths
      */
-    public ArrayList<String> check(String formula) {
+    private static final String WORKING_DIRECTORY = "./dbcs/";
+    private static final String TOPOCHECKER = "./topochecker/src/topochecker";
+
+    private static final String KRIPKE_FILENAME = "kripke.dot";
+    private static final String SPACE_FILENAME = "space.dot";
+    private static final String EVAL_FILENAME = "eval.csv";
+
+    private static final String LOGIC_FILENAME = "logic.topochecker";
+    private static final String TEST_FILENAME = "test.topochecker";
+    private static final String OUTPUT_FILENAME = "out-state-0.dot";
+    
+    /**
+     * @author enricocesca
+     * ldb verification function check()
+     * @param formula: a spatial property expressed in SLDB
+     * @return the list of entities that satisfies the formula
+     */
+    public ArrayList<Owned> check(String formula) {
     	
     	/**
          * Kripke Structure
@@ -1217,10 +1297,10 @@ final public class DirectedBigraph implements
     	kripke.addNode(new jdot.Node("0"));
     	
     	/**
-         * Creating File ./dbcs/kripke.dot
+         * Creating File KRIPKE_FILENAME
          */
     	try {
-			FileWriter kripkeFile = new FileWriter("./dbcs/kripke.dot");
+			FileWriter kripkeFile = new FileWriter(WORKING_DIRECTORY + KRIPKE_FILENAME);
 			
 			kripkeFile.write(kripke.toDot());
 			kripkeFile.close();
@@ -1237,6 +1317,9 @@ final public class DirectedBigraph implements
     	String newLine = System.getProperty("line.separator");
         StringBuilder eval = new StringBuilder();
         
+        /**
+         * Locality
+         */
     	Queue<Parent> q = new LinkedList<>();
     	q.addAll(this.roots);
     	
@@ -1277,164 +1360,166 @@ final public class DirectedBigraph implements
             }
         }
     	
-    	Map<String, EditableInnerName> inMapA = this.inners.getAsc();
-    	for (Map.Entry<String, EditableInnerName> entry : inMapA.entrySet()) {
-    		space.addNode(new jdot.Node("" + i).setShape(Shape.hexagon).setId(entry.getValue().toString()).setLabel(entry.getValue().toString()));
-    		eval.append("0," + i + ",inner," + entry.getValue().toString() + newLine);
+    	/**
+    	 * Connectivity
+    	 */
+    	for (Edge e : this.getEdges()) {
+    		space.addNode(new jdot.Node("" + i).setShape(Shape.trapezium).setId("" + e.toString()).setLabel(""));
+        	eval.append("0," + i + ",edge" + newLine);
     		i++;
     	}
     	
     	Map<String, EditableOuterName> inMapD = this.inners.getDesc();
     	for (Map.Entry<String, EditableOuterName> entry : inMapD.entrySet()) {
-    		
-    		int hName = i;
-    		
     		space.addNode(new jdot.Node("" + i).setShape(Shape.hexagon).setId(entry.getValue().toString()).setLabel(entry.getValue().toString()));
     		eval.append("0," + i + ",inner," + entry.getValue().toString() + newLine);
     		i++;
-    		
-    		Handle h = entry.getValue();
-    		List<? extends Point> ps = new ArrayList<>(h.getPoints());
-            
-            Iterator<? extends Point> ip = ps.iterator();
-            while (ip.hasNext()) {
-                Point p = ip.next();
-                
-            	space.addNode(new jdot.Node("" + i).setShape(Shape.diamond).setId("").setLabel(""));
-            	eval.append("0," + i + ",link" + newLine);
-            	i++;
-                
-                if (p.isPort()) {
-                	Node x = (Node) ((Port<?>) p).getNode();
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                if (p.isInnerName()) {
-                	InnerName x = (InnerName) p;
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                if (p.isOuterName()) {
-                	OuterName x = (OuterName) p;
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                
-                space.addEdge("" + (i - 1), "" + hName);
-            }
     	}
     	
     	Map<String, EditableOuterName> outMapA = this.outers.getAsc();
     	for (Map.Entry<String, EditableOuterName> entry : outMapA.entrySet()) {
-    		
-    		int hName = i;
-    		
     		space.addNode(new jdot.Node("" + i).setShape(Shape.octagon).setId(entry.getValue().toString()).setLabel(entry.getValue().toString()));
     		eval.append("0," + i + ",outer," + entry.getValue().toString() + newLine);
     		i++;
+    	}
+    	
+    	Map<String, EditableInnerName> inMapA = this.inners.getAsc();
+    	for (Map.Entry<String, EditableInnerName> entry : inMapA.entrySet()) {
+    		
+    		int pName = i;
+    	
+    		space.addNode(new jdot.Node("" + i).setShape(Shape.hexagon).setId(entry.getValue().toString()).setLabel(entry.getValue().toString()));
+    		eval.append("0," + i + ",inner," + entry.getValue().toString() + newLine);
+    		i++;
+    
+    		space.addNode(new jdot.Node("" + i).setShape(Shape.diamond).setId("").setLabel(""));
+        	eval.append("0," + i + ",link" + newLine);
+        	i++;
         	
-    		Handle h = entry.getValue();
-    		List<? extends Point> ps = new ArrayList<>(h.getPoints());
-            
-            Iterator<? extends Point> ip = ps.iterator();
-            while (ip.hasNext()) {
-                Point p = ip.next();
-                
-            	space.addNode(new jdot.Node("" + i).setShape(Shape.diamond).setId("").setLabel(""));
-            	eval.append("0," + i + ",link" + newLine);
-            	i++;
-                
-                if (p.isPort()) {
-                	Node x = (Node) ((Port<?>) p).getNode();
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                if (p.isInnerName()) {
-                	InnerName x = (InnerName) p;
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                if (p.isOuterName()) {
-                	OuterName x = (OuterName) p;
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                
-                space.addEdge("" + (i - 1), "" + hName);
+        	space.addNode(new jdot.Node("" + i).setShape(Shape.triangle).setId("").setLabel(""));
+        	eval.append("0," + i + ",back" + newLine);
+        	i++;
+        	
+        	space.addEdge("" + pName, "" + (pName + 1));
+        	space.addEdge("" + (pName + 2), "" + pName);
+    		
+    		Handle h = ((Point) entry.getValue()).getHandle();
+    		
+        	if (h.isPort()) {
+            	Node x = (Node) ((Port<?>) h).getNode();
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.getName()));
+            	space.addEdge(getNameOrNull(space, x.getName()), "" + (pName + 2));
+            }
+            if (h.isInnerName()) {
+            	InnerName x = (InnerName) h;
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.getName()));
+            	space.addEdge(getNameOrNull(space, x.getName()), "" + (pName + 2));
+            }
+            if (h.isOuterName()) {
+            	OuterName x = (OuterName) h;
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.getName()));
+            	space.addEdge(getNameOrNull(space, x.getName()), "" + (pName + 2));
+            }
+            if (h.isEdge()) {
+            	Edge x = (Edge) h;
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.toString()));
+            	space.addEdge(getNameOrNull(space, x.toString()), "" + (pName + 2));
             }
     	}
     	
     	Map<String, EditableInnerName> outMapD = this.outers.getDesc();
     	for (Map.Entry<String, EditableInnerName> entry : outMapD.entrySet()) {
+    		
+    		int pName = i;
+    		
     		space.addNode(new jdot.Node("" + i).setShape(Shape.octagon).setId(entry.getValue().toString()).setLabel(entry.getValue().toString()));
     		eval.append("0," + i + ",outer," + entry.getValue().toString() + newLine);
     		i++;
-    	}
-    	
-    	for (Edge e : this.getEdges()) {
+    	    
+    		space.addNode(new jdot.Node("" + i).setShape(Shape.diamond).setId("").setLabel(""));
+        	eval.append("0," + i + ",link" + newLine);
+        	i++;
+        	
+        	space.addNode(new jdot.Node("" + i).setShape(Shape.triangle).setId("").setLabel(""));
+        	eval.append("0," + i + ",back" + newLine);
+        	i++;
+
+        	space.addEdge("" + pName, "" + (pName + 1));
+        	space.addEdge("" + (pName + 2), "" + pName);
     		
-    		int eName = i;
-    		
-    		space.addNode(new jdot.Node("" + i).setShape(Shape.trapezium).setId("" + e.toString()).setLabel(""));
-        	eval.append("0," + i + ",edge" + newLine);
-    		i++;
-    		
-    		List<? extends Point> ps = new ArrayList<>(e.getPoints());
-    		
-            Iterator<? extends Point> ip = ps.iterator();
-            while (ip.hasNext()) {
-                Point p = ip.next();
-                
-            	space.addNode(new jdot.Node("" + i).setShape(Shape.diamond).setId("").setLabel(""));
-            	eval.append("0," + i + ",link" + newLine);
-            	i++;
-                
-                if (p.isPort()) {
-                	Node x = (Node) ((Port<?>) p).getNode();
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                if (p.isInnerName()) {
-                	InnerName x = (InnerName) p;
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                if (p.isOuterName()) {
-                	OuterName x = (OuterName) p;
-                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                }
-                
-                space.addEdge("" + (i - 1), "" + eName);
+    		Handle h = ((Point) entry.getValue()).getHandle();
+        	
+    		if (h.isPort()) {
+            	Node x = (Node) ((Port<?>) h).getNode();
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.getName()));
+            	space.addEdge(getNameOrNull(space, x.getName()), "" + (pName + 2));
+            }
+            if (h.isInnerName()) {
+            	InnerName x = (InnerName) h;
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.getName()));
+            	space.addEdge(getNameOrNull(space, x.getName()), "" + (pName + 2));
+            }
+            if (h.isOuterName()) {
+            	OuterName x = (OuterName) h;
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.getName()));
+            	space.addEdge(getNameOrNull(space, x.getName()), "" + (pName + 2));
+            }
+            if (h.isEdge()) {
+            	Edge x = (Edge) h;
+            	space.addEdge("" + (pName + 1), getNameOrNull(space, x.toString()));
+            	space.addEdge(getNameOrNull(space, x.toString()), "" + (pName + 2));
             }
     	}
     	
     	for (Node n : this.getNodes()) {
-    		for (Handle h : n.getInPorts()) {
-    			List<? extends Point> ps = new ArrayList<>(h.getPoints());
+			String nName = getNameOrNull(space, n.getName());
+			
+    		Iterator<? extends OutPort> io = n.getOutPorts().iterator();
+    		if (io.hasNext()) {
     			
-                Iterator<? extends Point> ip = ps.iterator();
-                while (ip.hasNext()) {
-                    Point p = ip.next();
-                    
-                	space.addNode(new jdot.Node("" + i).setShape(Shape.diamond).setId("").setLabel(""));
-                	eval.append("0," + i + ",link" + newLine);
-                	i++;
-                    
-                    if (p.isPort()) {
-                    	Node x = (Node) ((Port<?>) p).getNode();
-                    	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                    }
-                    if (p.isInnerName()) {
-                    	InnerName x = (InnerName) p;
-                    	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                    }
-                    if (p.isOuterName()) {
-                    	OuterName x = (OuterName) p;
-                    	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
-                    }
-                	
-                	space.addEdge("" + (i - 1), getNameOrNull(space, n.getName()));
+    			space.addNode(new jdot.Node("" + i).setShape(Shape.diamond).setId("").setLabel(""));
+            	eval.append("0," + i + ",link" + newLine);
+            	i++;
+            	
+            	space.addNode(new jdot.Node("" + i).setShape(Shape.triangle).setId("").setLabel(""));
+            	eval.append("0," + i + ",back" + newLine);
+            	i++;
+
+            	space.addEdge(nName, "" + (i - 2));
+            	space.addEdge("" + (i - 1), nName);
+    		}
+    		
+    		while (io.hasNext()) {
+    			Handle h = io.next().getHandle();
+    			
+    			if (h.isPort()) {
+                	Node x = (Node) ((Port<?>) h).getNode();
+                	space.addEdge("" + (i - 2), getNameOrNull(space, x.getName()));
+                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
+                }
+                if (h.isInnerName()) {
+                	InnerName x = (InnerName) h;
+                	space.addEdge("" + (i - 2), getNameOrNull(space, x.getName()));
+                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
+                }
+                if (h.isOuterName()) {
+                	OuterName x = (OuterName) h;
+                	space.addEdge("" + (i - 2), getNameOrNull(space, x.getName()));
+                	space.addEdge(getNameOrNull(space, x.getName()), "" + (i - 1));
+                }
+                if (h.isEdge()) {
+                	Edge x = (Edge) h;
+                	space.addEdge("" + (i - 2), getNameOrNull(space, x.toString()));
+                	space.addEdge(getNameOrNull(space, x.toString()), "" + (i - 1));
                 }
     		}
     	}
 
     	/**
-         * Creating File ./dbcs/space.dot
+         * Creating File SPACE_FILENAME
          */
     	try {
-			FileWriter spaceFile = new FileWriter("./dbcs/space.dot");
+			FileWriter spaceFile = new FileWriter(WORKING_DIRECTORY + SPACE_FILENAME);
 			
 			spaceFile.write(space.toDot());
 			spaceFile.close();
@@ -1443,10 +1528,10 @@ final public class DirectedBigraph implements
 		}
     	
     	/**
-         * Creating File ./dbcs/eval.csv
+         * Creating File EVAL_FILENAME
          */
     	try {
-			FileWriter evalFile = new FileWriter("./dbcs/eval.csv");
+			FileWriter evalFile = new FileWriter(WORKING_DIRECTORY + EVAL_FILENAME);
 			
 			evalFile.write(eval.toString());
 			evalFile.close();
@@ -1458,20 +1543,20 @@ final public class DirectedBigraph implements
          * Test Definition
          */
         StringBuilder test = new StringBuilder();
-        
-        test.append("Kripke \"kripke.dot\" Space \"space.dot\" Eval \"eval.csv\";" + newLine);
+
+        test.append("Kripke \"" + KRIPKE_FILENAME + "\" Space \"" + SPACE_FILENAME + "\" Eval \"" + EVAL_FILENAME + "\";" + newLine);
     	try {
-			test.append(new String(Files.readAllBytes(Paths.get("./dbcs/logic.topochecker"))));
+			test.append(new String(Files.readAllBytes(Paths.get(WORKING_DIRECTORY + LOGIC_FILENAME))));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
         test.append(newLine + "Check \"0xFF0000\" " + formula + ";" + newLine);
         
     	/**
-         * Creating File ./dbcs/test.topochecker
+         * Creating File TEST_FILENAME
          */
     	try {
-			FileWriter testFile = new FileWriter("./dbcs/test.topochecker");
+			FileWriter testFile = new FileWriter(WORKING_DIRECTORY + TEST_FILENAME);
 			
 			testFile.write(test.toString());
 			testFile.close();
@@ -1483,7 +1568,7 @@ final public class DirectedBigraph implements
          * Topochecker
          */
     	try {
-			Process p = Runtime.getRuntime().exec("./topochecker/src/topochecker ./dbcs/test.topochecker");
+			Process p = Runtime.getRuntime().exec(TOPOCHECKER + " " + WORKING_DIRECTORY + TEST_FILENAME);
 			p.waitFor();
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
@@ -1492,9 +1577,9 @@ final public class DirectedBigraph implements
     	/**
          * Output Analysis
          */
-    	ArrayList<String> output = new ArrayList<String>();
+    	ArrayList<Owned> output = new ArrayList<Owned>();
     	try {
-			File myObj = new File("./dbcs/out-state-0.dot");
+			File myObj = new File(WORKING_DIRECTORY + OUTPUT_FILENAME);
 			Scanner myReader = new Scanner(myObj);
 			
 		    String row = myReader.nextLine();
@@ -1505,11 +1590,12 @@ final public class DirectedBigraph implements
 			    rowArray = row.split(" ");
 			    
 			    if (rowArray[1].equals("[fillcolor=\"#FF0000\",style=\"filled\"];")) {
-			    	output.add((String) space.getNode(rowArray[0]).getAttrs().get(Key.id));
+			    	output.add(this.getEntity((String) space.getNode(rowArray[0]).getAttrs().get(Key.id)));
 			    }
 			    
 			    i--;
 			}
+	    	while (output.remove(null));
 			
 			myReader.close();
 	    } catch (FileNotFoundException e) {
@@ -1572,14 +1658,15 @@ final public class DirectedBigraph implements
 		
 		Node c0 = directedBigraphBuilder.addNode("PC", r0);
 		Node s0 = directedBigraphBuilder.addNode("Spool", r0);
-		directedBigraphBuilder.addSite(s0);
 
 		Node p0 = directedBigraphBuilder.addNode("Printer", r0);
 		directedBigraphBuilder.relink(s0.getInPort(0), p0.getOutPort(0));
 		
 		Node t0 = directedBigraphBuilder.addNode("Tray", r0);
 		directedBigraphBuilder.relink(p0.getInPort(0), t0.getOutPort(0));
+		
 		directedBigraphBuilder.addSite(t0);
+		directedBigraphBuilder.addSite(s0);
 
 		Node r1 = directedBigraphBuilder.addNode("Room", root);
 		directedBigraphBuilder.relink(d0.getInPort(1), r1.getOutPort(0));
@@ -1612,19 +1699,21 @@ final public class DirectedBigraph implements
 		DirectedBigraph directedBigraph = directedBigraphBuilder.makeBigraph();
 
 		/**
-		 * p0 = "[PC] & siblings([User])"
-		 * p1 = "[Room] & parent([Printer])"
-		 * p2 = "points([lan])"
-		 * p3 = "handles([Printer])"
-		 * p4 = "[PC] & (! points([lan])) & siblings([User] & parent([Job]))"
-		 * p5 = "[User] & parent([Job]) & siblings([PC] & reachability(context([PC]),context([Printer])))"
-		 * p6 = "[PC] & children([Room] & reachabilityThrough(context([Room] & parent([PC])),([Door] & parent([Unlocked])),context([Room] & parent([Printer]))))"
-		 * p7 = "[User] & children([Room] & parent([User]) & (! points([Door] & parent([Unlocked]))))"
+		 * Properties of Space over Directed Bigraphs (SLDB):
+		 * "[PC] & siblings([User])"
+		 * "[Room] & parent([Printer])"
+		 * "points([lan])"
+		 * "handles([Printer])"
+		 * "[User] & points([director])"
+		 * "[PC] & (! points([lan])) & siblings([User] & parent([Job]))"
+		 * "[User] & parent([Job]) & siblings(connectedThrough([PC], [lan], [Printer]))"
+		 * "[PC] & children(connectedThrough([Room] & parent([PC]), [Room] | ([Door] & parent([Unlocked])), [Room] & parent([Printer])))"
+		 * "[User] & children([Room] & parent([User]) & (! points([Door] & parent([Unlocked]))))"
 		 */
-		ArrayList<String> res = directedBigraph.check("[PC] & (! points([lan])) & siblings([User] & parent([Job]))");
-		
-		System.out.println(">> SPATIAL VERIFICATION OUTPUT" + "\n" + res);
-		System.out.println("\n" + ">> DIRECTED BIGRAPH" + "\n" + directedBigraph.toString());
+		ArrayList<Owned> res = directedBigraph.check("[User] & parent([Job]) & siblings(connectedThrough([PC], [lan], [Printer]))");
+
+		System.out.println(">> SPATIAL VERIFICATION OUTPUT:" + res.toString());
+		System.out.println("\n" + ">> DIRECTED BIGRAPH:" + "\n" + directedBigraph.toString());
 	}
 	
     /*
